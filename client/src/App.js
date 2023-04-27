@@ -3,7 +3,7 @@
 // Import components here
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import Login from "./components/login" ;
-import Home from "./components/home" ;
+import Home from "./components/home_seller" ;
 import AnyPage from "./components/anypage" ;
 import Register from "./components/register" ;
 

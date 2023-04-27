@@ -10,6 +10,7 @@ const secret_key = require('./Controllers/auth.config.js');
 const auth_session = require('./Controllers/auth_session.js');
 const db = require('./config.txt');
 const port = 8080;
+const { v4: uuidv4 } = require('uuid');
 
 app.use(cors({ credentials:true, origin:'http://localhost:3000' }));
 
@@ -132,9 +133,11 @@ app.get('/home', auth_session, async (request, response) => {
   try {
     const query_buyer = `SELECT * FROM buyer_profile WHERE user_id = '${id}'` ;
     let result_buyer = await client.query(query_buyer) ;
-    const buyer = result_buyer.rows[0] ;
-    response.send({user : buyer}) ;
-    found = true ;
+	if(result_buyer.rows.length>0){
+		const buyer = result_buyer.rows[0] ;
+		response.send({user : buyer}) ;
+		found = true ;
+	}
   } catch (err) {
     console.log(err) ;
   }
@@ -142,17 +145,19 @@ app.get('/home', auth_session, async (request, response) => {
   if(!found){
     console.log('still trying') ;
     try {
-      const query_seller = `SELECT * FROM seller_profile WHERE user_id = '${id}'` ;
-      let result_seller = await client.query(query_seller) ;
-      const seller = result_seller.rows[0] ;
+		const query_seller = `SELECT * FROM seller_profile WHERE user_id = '${id}'` ;
+		let result_seller = await client.query(query_seller) ;
+		if(result_seller.rows.length>0){
+			const seller = result_seller.rows[0] ;
 
-      const query_seller_products = `SELECT * FROM product WHERE seller_id = '${id}'`;
-      let result_seller_products = await client.query(query_seller_products) ;
-      const products = result_seller_products.rows;
+			const query_seller_products = `SELECT * FROM product WHERE seller_id = '${id}'`;
+			let result_seller_products = await client.query(query_seller_products) ;
+			const products = result_seller_products.rows;
 
-      response.send({user : seller, products: products}) ;
-      found = true ;
-      console.log('seller found') ;
+			response.send({user : seller, products: products}) ;
+			found = true ;
+			console.log('seller found') ;
+		}
     } catch (err) {
       console.log(err) ;
     }
@@ -162,12 +167,14 @@ app.get('/home', auth_session, async (request, response) => {
   if(!found){
 
     try {
-      const query_agent = `SELECT * FROM delivery_agent WHERE user_id = '${id}'` ;
-      let result_agent = await client.query(query_agent) ;
-      const agent = result_agent.rows[0] ;
-      response.send({user : agent}) ;
-      found = true ;
-      console.log('agent found') ;
+		const query_agent = `SELECT * FROM delivery_agent WHERE user_id = '${id}'` ;
+		let result_agent = await client.query(query_agent) ;
+		if(result_agent.rows.length>0){
+			const agent = result_agent.rows[0] ;
+			response.send({user : agent}) ;
+			found = true ;
+			console.log('agent found') ;
+		}
     } catch (err) {
       console.log(err) ;
     }
@@ -180,22 +187,24 @@ app.get('/home', auth_session, async (request, response) => {
   }
 });
 
-app.get('/home/remove', auth_session, async (request, response) => {
+app.post('/home/remove', auth_session, async (request, response) => {
   // console.log(request.session.user);
-  const id = request.session.user;
-  let found = false;
+	console.log("requested remove ");
+	const id = request.session.user;
+	let found = false;
 
 	try {
 		const query_seller = `SELECT * FROM seller_profile WHERE user_id = '${id}'` ;
 		let result_seller = await client.query(query_seller) ;
-		const seller = result_seller.rows[0] ;
+		if(result_seller.rows.length>0){
+			const product_id = request.body.product_id;
+			const query_seller_deleteProduct = `DELETE FROM product WHERE seller_id = '${id}' AND product_id = '${product_id}'`;
+			await client.query(query_seller_deleteProduct);
 
-		const query_seller_deleteProduct = `DELETE FROM product WHERE '${seller_id}' AND product_id = '${product_id}'`;
-		await client.query(query_seller_deleteProduct);
-
-		response.send({message : "Product removed"}) ;
-		found = true ;
-		console.log('Product removed') ;
+			response.send({message : "Product removed"}) ;
+			found = true ;
+			console.log('Product removed') ;
+		}
 	} catch (err) {
 		console.log(err) ;
 	}
@@ -207,7 +216,7 @@ app.get('/home/remove', auth_session, async (request, response) => {
 });
 
 // To add or modify a product from list of products sold by seller
-app.get('/home/add', auth_session, async (request, response) => {
+app.post('/home/add', auth_session, async (request, response) => {
   // console.log(request.session.user);
   const id = request.session.user;
   let found = false;
@@ -217,8 +226,8 @@ app.get('/home/add', auth_session, async (request, response) => {
     let result_seller = await client.query(query_seller) ;
     const seller = result_seller.rows[0] ;
 
-    const product_id = request.body.product_id;
-    const seller_id = request.session.user;
+    let product_id = request.body.product_id;
+    const seller_id = id;
     const quantityAvailable = request.body.quantityAvailable;
     let photo_addr = request.body.photo_addr;
     // const photo_addr = request.body.photo_addr;
@@ -228,16 +237,27 @@ app.get('/home/add', auth_session, async (request, response) => {
     const price = request.body.price;
     let rating = 0;
     // const rating = request.body.rating
+	console.log(product_id, quantityAvailable, photo_addr, addr, name, detail, price)
 
     const query_seller_product = `SELECT * FROM product WHERE seller_id = '${seller_id}' AND product_id = '${product_id}'`;
     let result_seller_product = await client.query(query_seller_product);
-    const is_modification = (result_seller_product.rows.length > 0);
+    let is_modification = result_seller_product.rows.length;
 
-	if(is_modification){//modifying existing product
-		const query_seller_updateProduct = `UPDATE product set photo_addr = ${photo_addr}, addr = ${addr}, name = ${name}, detail = ${detail}, price = ${price}, quantityAvailable = ${quantityAvailable} WHERE product_id = ${product_id} AND seller_id = ${seller_id}`;
+	if(is_modification>0){//modifying existing product
+		const query_seller_updateProduct = `UPDATE product SET photo_addr = '${photo_addr}', addr = '${addr}', name = '${name}', detail = '${detail}', price = ${price}, quantityAvailable = ${quantityAvailable} WHERE product_id = '${product_id}' AND seller_id = '${seller_id}'`;
+		console.log(query_seller_updateProduct)
 		await client.query(query_seller_updateProduct);
 	}
 	else{//adding new Product
+		let unique = false
+		while(!unique){
+			product_id = uuidv4();
+			let query_check_uniqueId = `SELECT * FROM product WHERE product_id = '${product_id}'`
+			result_isUniqueId = await client.query(query_check_uniqueId);
+			if(result_isUniqueId.rows.length == 0){
+				unique = true;
+			}
+		}
 		const query_seller_addProduct = `INSERT INTO product VALUES ('${product_id}', '${seller_id}', '${photo_addr}', '${addr}', '${name}', '${detail}', ${price}, ${quantityAvailable}, ${rating})`
 		await client.query(query_seller_addProduct);
 	}

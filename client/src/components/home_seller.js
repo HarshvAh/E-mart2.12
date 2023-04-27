@@ -12,48 +12,98 @@ const Home = () => {
 
     useEffect(() => {
         axios.get('http://localhost:8080/home').then(res => {
-        if(res.data.notlog){
-            window.location.href = '/login';
-        } else {
             setProfile(res.data.user);
             setProducts(res.data.products);
             setLoading(false);
-        }
         }).catch(err => console.error(err));
     }, []);
 
     const removeProduct = (product_id) => {
-    axios.post("http://localhost:8080/home/remove", {product_id : product_id}).then((response) => {
-        if (response.data.notlog) {
-            window.location.href = '/login';
-        } else {
-            setProducts(products.filter(product => product.product_id !== product_id));
-        }
+        axios.post("http://localhost:8080/home/remove", {product_id : product_id}).then((response) => {
+            console.log(response);
+            if (response.data.notlog) {
+                window.location.href = '/login';
+            } else {
+                setProducts(products.filter(product => product.product_id !== product_id));
+            }
         });
     };
 
-    const addProduct = (product_id, quantityAvailable, photo_addr, addr, name, detail, price) => {
-    axios.post("http://localhost:8080/home/add", {product_id : product_id, quantityAvailable : quantityAvailable, photo_addr : photo_addr, addr : addr, name : name, detail : detail, price : price}).then((response) => {
-        if (response.data.notlog) {
-            window.location.href = '/login';
-        } else {
-            setProducts(response.data.products);
+    const modifyProduct = (product_id, quantityAvailable, photo_addr, addr, name, detail, price) => {
+        if(quantityAvailable === '' || photo_addr === '' || addr === '' || name === '' || detail === '' || price === ''){
+            alert('Wrong or incomplete inputs!');
         }
-        });
+        else{
+            axios.post("http://localhost:8080/home/add", {product_id:product_id, quantityAvailable : quantityAvailable, photo_addr : photo_addr, addr : addr, name : name, detail : detail, price : price}).then((response) => {
+                if (response.data.notlog) {
+                    window.location.href = '/login';
+                } else {
+                    setProducts(response.data.products);
+                }
+            });
+        }
+    };
+
+    const addProduct = (product_id, quantityAvailable, photo_addr, addr, name, detail, price) => {
+        if(quantityAvailable === '' || photo_addr === '' || addr === '' || name === '' || detail === '' || price === ''){
+            alert('Wrong or incomplete inputs!');
+        }
+        else{
+            axios.post("http://localhost:8080/home/add", {product_id:product_id, quantityAvailable : quantityAvailable, photo_addr : photo_addr, addr : addr, name : name, detail : detail, price : price}).then((response) => {
+                if (response.data.notlog) {
+                    window.location.href = '/login';
+                } else {
+                    console.log(response.data.products);
+                    setProducts(response.data.products);
+                }
+            });
+        }
     };
 
     // For adding product
     const [newProduct, setnewProduct] = useState({
-        product_id : "",
-        quantityAvailable : 0,
-        photo_addr : "",
-        addr : "",
-        name : "",
-        detail : "",
-        price : 0
+        quantityAvailable : '',
+        photo_addr : '',
+        addr : '',
+        name : '',
+        detail : '',
+        price : ''
     });
 
-    const handleInputChange = (event) => {
+    const [modProduct, setmodProduct] = useState({
+        product_id : '',
+        quantityAvailable : '',
+        photo_addr : '',
+        addr : '',
+        name : '',
+        detail : '',
+        price : ''
+    });
+
+    const resetnewProduct = () => {
+        setnewProduct(() => ({
+            quantityAvailable : '',
+            photo_addr : '',
+            addr : '',
+            name : '',
+            detail : '',
+            price : ''
+        }));
+    }
+
+    const resetmodProduct = () => {
+        setmodProduct(() => ({
+            product_id : '',
+            quantityAvailable : '',
+            photo_addr : '',
+            addr : '',
+            name : '',
+            detail : '',
+            price : ''
+        }));
+    }
+
+    const handleInputChange_AP = (event) => {
         const { name, value } = event.target;
         setnewProduct((prevProps) => ({
         ...prevProps,
@@ -61,9 +111,23 @@ const Home = () => {
         }));
     };
 
-    const handleSubmit = (event) => {
+    const handleInputChange_MP = (event) => {
+        const { name, value } = event.target;
+        setmodProduct((prevProps) => ({
+        ...prevProps,
+        [name]: value
+        }));
+    };
+
+    const handleSubmit_AP = (event) => {
         event.preventDefault();
-        addProduct(newProduct);
+        addProduct('', newProduct.quantityAvailable, newProduct.photo_addr, newProduct.addr, newProduct.name, newProduct.detail, newProduct.price);
+        resetnewProduct();
+    };
+    const handleSubmit_MP = (event) => {
+        event.preventDefault();
+        modifyProduct(modProduct.product_id, modProduct.quantityAvailable, modProduct.photo_addr, modProduct.addr, modProduct.name, modProduct.detail, modProduct.price);
+        resetmodProduct();
     };
 
 
@@ -105,15 +169,15 @@ const Home = () => {
                     <tbody>
                         {products.map(product=>(
                         <tr key={product.product_id}>
-                            <td><img src = {product.photo_addr} alt = "product"/></td>
+                            <td><img src = {product.photo_addr} alt = "product" style={{ width: 200, height: 200 }}/></td>
                             <td>{product.product_id}</td>
                             <td>{product.name}</td>
                             <td>{product.detail}</td>
-                            <td>{product.quantityAvailable}</td>
+                            <td>{product.quantityavailable}</td>
                             <td>{product.addr}</td>
                             <td>{product.rating}</td>
                             <td>{product.price}</td>
-                            <td><Button variant="outline-danger" onClick={() => removeProduct(product.product_id)}>Drop</Button>{' '}</td>
+                            <td><Button variant="outline-danger" onClick={() => removeProduct(product.product_id)}>Remove Product</Button>{' '}</td>
                         </tr>
                         ))}
                     </tbody>
@@ -129,44 +193,96 @@ const Home = () => {
                         <MDBCard>
                         <MDBCardBody className='px-4'>
 
-                            <h3 className="fw-bold mb-4 pb-2 pb-md-0 mb-md-5">Add - Modify Product</h3>
+                            <h3 className="fw-bold mb-4 pb-2 pb-md-0 mb-md-5">Add Product</h3>
                             <MDBRow>
                                 <MDBCol md='6'>
-                                    <MDBInput wrapperClass='mb-4' label='Product Id' size='lg' id='form1' type='text' value={newProduct.product_id} onChange={handleInputChange}/>
-                                </MDBCol>
-                                <MDBCol md='6'>
-                                    <MDBInput wrapperClass='mb-4' label='Product Name' size='lg' id='form2' type='text' value={newProduct.name} onChange={handleInputChange}/>
+                                    <MDBInput wrapperClass='mb-4' name='name' label='Product Name' size='lg' id='form2' type='text' value={newProduct.name} onChange={handleInputChange_AP}/>
                                 </MDBCol>
                             </MDBRow>
 
                             <MDBRow>
                                 <MDBCol md='9' className='pe-5'>
-                                    <MDBInput wrapperClass='mb-4' label='Detail' size='lg' id='form3' rows={4} type='text' value={newProduct.detail} onChange={handleInputChange}/>
+                                    <MDBInput wrapperClass='mb-4' name='detail' label='Detail' size='lg' id='form3' rows={4} type='text' value={newProduct.detail} onChange={handleInputChange_AP}/>
                                 </MDBCol>
                             </MDBRow>
 
                             <MDBRow>
                                 <MDBCol md='9' className='pe-5'>
-                                    <MDBInput wrapperClass='mb-4' label='Address' size='lg' id='form4' rows={4} type='text' value={newProduct.addr} onChange={handleInputChange}/>
+                                    <MDBInput wrapperClass='mb-4' name='addr' label='Address' size='lg' id='form4' rows={4} type='text' value={newProduct.addr} onChange={handleInputChange_AP}/>
                                 </MDBCol>
                             </MDBRow>
 
                             <MDBRow>
                                 <MDBCol md='9' className='pe-5'>
-                                    <MDBInput wrapperClass='mb-4' label='Photo Address' size='lg' id='form5' rows={2} type='text' value={newProduct.photo_addr} onChange={handleInputChange}/>
+                                    <MDBInput wrapperClass='mb-4' name='photo_addr' label='Photo Address' size='lg' id='form5' rows={2} type='text' value={newProduct.photo_addr} onChange={handleInputChange_AP}/>
                                 </MDBCol>
                             </MDBRow>
 
                             <MDBRow>
                                 <MDBCol md='6'>
-                                    <MDBInput wrapperClass='mb-4' label='Quantity Available' size='lg' id='form6' type='text' value={newProduct.quantityAvailable} onChange={handleInputChange}/>
+                                    <MDBInput wrapperClass='mb-4' name='quantityAvailable' label='Quantity Available' size='lg' id='form6' type='text' value={newProduct.quantityAvailable} onChange={handleInputChange_AP}/>
                                 </MDBCol>
                                 <MDBCol md='6'>
-                                    <MDBInput wrapperClass='mb-4' label='Price' size='lg' id='form7' type='text' value={newProduct.price} onChange={handleInputChange}/>
+                                    <MDBInput wrapperClass='mb-4' name='price' label='Price' size='lg' id='form7' type='text' value={newProduct.price} onChange={handleInputChange_AP}/>
                                 </MDBCol>
                             </MDBRow>
 
-                            <MDBBtn className='mb-4' size='lg' onClick={handleSubmit}>Submit</MDBBtn>
+                            <MDBBtn className='mb-4' size='lg' onClick={handleSubmit_AP}>Submit</MDBBtn>
+
+                        </MDBCardBody>
+                        </MDBCard>
+
+                    </MDBRow>
+                </MDBContainer>
+                
+                <br></br>
+                <br></br>
+
+                <MDBContainer fluid>
+
+                    <MDBRow className='justify-content-center align-items-center m-5'>
+
+                        <MDBCard>
+                        <MDBCardBody className='px-4'>
+
+                            <h3 className="fw-bold mb-4 pb-2 pb-md-0 mb-md-5">Modify Product</h3>
+                            <MDBRow>
+                                <MDBCol md='6'>
+                                    <MDBInput wrapperClass='mb-4' name='product_id' label='Product Id' size='lg' id='form1' type='text' value={modProduct.product_id} onChange={handleInputChange_MP}/>
+                                </MDBCol>
+                                <MDBCol md='6'>
+                                    <MDBInput wrapperClass='mb-4' name='name' label='Product Name' size='lg' id='form2' type='text' value={modProduct.name} onChange={handleInputChange_MP}/>
+                                </MDBCol>
+                            </MDBRow>
+
+                            <MDBRow>
+                                <MDBCol md='9' className='pe-5'>
+                                    <MDBInput wrapperClass='mb-4' name='detail' label='Detail' size='lg' id='form3' rows={4} type='text' value={modProduct.detail} onChange={handleInputChange_MP}/>
+                                </MDBCol>
+                            </MDBRow>
+
+                            <MDBRow>
+                                <MDBCol md='9' className='pe-5'>
+                                    <MDBInput wrapperClass='mb-4' name='addr' label='Address' size='lg' id='form4' rows={4} type='text' value={modProduct.addr} onChange={handleInputChange_MP}/>
+                                </MDBCol>
+                            </MDBRow>
+
+                            <MDBRow>
+                                <MDBCol md='9' className='pe-5'>
+                                    <MDBInput wrapperClass='mb-4' name='photo_addr' label='Photo Address' size='lg' id='form5' rows={2} type='text' value={modProduct.photo_addr} onChange={handleInputChange_MP}/>
+                                </MDBCol>
+                            </MDBRow>
+
+                            <MDBRow>
+                                <MDBCol md='6'>
+                                    <MDBInput wrapperClass='mb-4' name='quantityAvailable' label='Quantity Available' size='lg' id='form6' type='text' value={modProduct.quantityAvailable} onChange={handleInputChange_MP}/>
+                                </MDBCol>
+                                <MDBCol md='6'>
+                                    <MDBInput wrapperClass='mb-4' name='price' label='Price' size='lg' id='form7' type='text' value={modProduct.price} onChange={handleInputChange_MP}/>
+                                </MDBCol>
+                            </MDBRow>
+
+                            <MDBBtn className='mb-4' size='lg' onClick={handleSubmit_MP}>Submit</MDBBtn>
 
                         </MDBCardBody>
                         </MDBCard>
@@ -174,75 +290,67 @@ const Home = () => {
                     </MDBRow>
                 </MDBContainer>
 
-
-                <form onSubmit={handleSubmit}>
+                {/* <form onSubmit={handleSubmit_MP}>
                     <div className="form-control">
-                    ge={handleInputChange}
                     <label>Product Id</label>
                     <input
                         type="text"
-                        name=""
-                        value={newProduct.product_id}
+                        name="product_id"
+                        value={modProduct.product_id}
                         onChange={handleInputChange}
                     />
                     </div>
                     <div className="form-control">
-                    ge={handleInputChange}
                     <label>Name</label>
                     <input
                         type="text"
-                        name=""
-                        value={newProduct.name}
+                        name="name"
+                        value={modProduct.name}
                         onChange={handleInputChange}
                     />
                     </div>
                     <div className="form-control">
-                    ge={handleInputChange}
                     <label>Detail</label>
                     <input
                         type="text"
-                        name=""
-                        value={newProduct.detail}
+                        name="detail"
+                        value={modProduct.detail}
                         onChange={handleInputChange}
                     />
                     </div>
                     <div className="form-control">
-                    ge={handleInputChange}
                     <label>Quantity Available</label>
                     <input
                         type="text"
-                        name=""
-                        value={newProduct.quantityAvailable}
+                        name="quantityAvailable"
+                        value={modProduct.quantityAvailable}
                         onChange={handleInputChange}
                     />
                     </div>
                     <div className="form-control">
-                    ge={handleInputChange}
                     <label>Address</label>
                     <input
                         type="text"
-                        name=""
-                        value={newProduct.addr}
+                        name="addr"
+                        value={modProduct.addr}
                         onChange={handleInputChange}
                     />
                     </div>
                     <div className="form-control">
-                    ge={handleInputChange}
                     <label>Photo Address</label>
                     <input
                         type="text"
-                        name=""
-                        value={newProduct.photo_addr}
+                        name="photo_addr"
+                        value={modProduct.photo_addr}
                         onChange={handleInputChange}
                     />
                     </div>
                     <div className="form-control">
-                    ge={handleInputChange}
                     <label>Price</label>
                     <input
                         type="text"
-                        name=""
-                        value={newProduct.price}
+                        name="price"
+                        value={modProduct.price}
                         onChange={handleInputChange}
                     />
                     </div>
@@ -250,7 +358,7 @@ const Home = () => {
                     <label></label>
                     <button type="submit">Add Product</button>
                     </div>
-                </form>
+                </form> */}
 
             </div>
 
