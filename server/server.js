@@ -235,7 +235,8 @@ app.post('/home/add', auth_session, async (request, response) => {
     const name = request.body.name;
     const detail = request.body.detail;
     const price = request.body.price;
-    let rating = 0;
+	const pincode = request.body.pincode;
+	let isAdded = false;
     // const rating = request.body.rating
 	console.log(product_id, quantityAvailable, photo_addr, addr, name, detail, price)
 
@@ -244,9 +245,10 @@ app.post('/home/add', auth_session, async (request, response) => {
     let is_modification = result_seller_product.rows.length;
 
 	if(is_modification>0){//modifying existing product
-		const query_seller_updateProduct = `UPDATE product SET photo_addr = '${photo_addr}', addr = '${addr}', name = '${name}', detail = '${detail}', price = ${price}, quantityAvailable = ${quantityAvailable} WHERE product_id = '${product_id}' AND seller_id = '${seller_id}'`;
+		const query_seller_updateProduct = `UPDATE product SET photo_addr = '${photo_addr}', addr = '${addr}', pincode = '${pincode}', name = '${name}', detail = '${detail}', price = ${price}, quantityAvailable = ${quantityAvailable} WHERE product_id = '${product_id}' AND seller_id = '${seller_id}'`;
 		console.log(query_seller_updateProduct)
-		await client.query(query_seller_updateProduct);
+		let result_productUpdated = await client.query(query_seller_updateProduct);
+		isAdded = true;
 	}
 	else{//adding new Product
 		let unique = false
@@ -258,15 +260,16 @@ app.post('/home/add', auth_session, async (request, response) => {
 				unique = true;
 			}
 		}
-		const query_seller_addProduct = `INSERT INTO product VALUES ('${product_id}', '${seller_id}', '${photo_addr}', '${addr}', '${name}', '${detail}', ${price}, ${quantityAvailable}, ${rating})`
-		await client.query(query_seller_addProduct);
+		const query_seller_addProduct = `INSERT INTO product VALUES ('${product_id}', '${seller_id}', '${photo_addr}', '${addr}', '${pincode}', '${name}', '${detail}', ${price}, ${quantityAvailable})`
+		let result_productAdd = await client.query(query_seller_addProduct);
+		isAdded = true;
 	}
 
     const query_seller_products = `SELECT * FROM product WHERE seller_id = '${id}'`;
     let result_seller_products = await client.query(query_seller_products) ;
     const products = result_seller_products.rows;
 
-    response.send({user : seller, products: products}) ;
+    response.send({user : seller, isAdded: isAdded, products: products}) ;
     found = true ;
     console.log('Product added') ;
   } catch (err) {

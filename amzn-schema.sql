@@ -46,13 +46,14 @@ create table delivery_agent
 create table product
     (product_id        char(36),
      seller_id         varchar(15),
-     photo_addr        varchar(30),
+     photo_addr        varchar(300),
      addr              varchar(150),
+     pincode           char(6),
      name              varchar(50),
      detail            varchar(300),
      price             numeric(12, 3) check (price > 0),
      quantityAvailable numeric(10, 0) check (quantityAvailable >= 0),
-     rating            numeric(3, 2)  check (rating >= 0 and rating<=5),
+    --  rating            numeric(3, 2)  check (rating >= 0 and rating<=5),
      primary key (product_id),
      foreign key (seller_id) references seller_profile(user_id)
         on delete set null
@@ -61,10 +62,10 @@ create table product
 create table review
     (user_id         varchar(15),
      product_id      varchar(8),
-     rating          numeric(1, 2)  check (rating >= 0 and rating<=5),
+     rating          numeric(3, 2)  check (rating >= 0 and rating<=5),
      review          varchar(300),
-     seller_id       varchar(15),
-     addr            varchar(150),
+    --  seller_id       varchar(15),
+    --  addr            varchar(150),
      primary key (user_id, product_id),
      foreign key (user_id) references buyer_profile
         on delete set null,
@@ -78,10 +79,11 @@ create table orders
      order_date      timestamp default NULL,
      estimate_date   timestamp default NULL,
      current_status  varchar(20) check (current_status in ('processing', 'transit', 'shipped', 'out_for_delivery', 'delivered')),
-     seller_id       varchar(15),
+    --  seller_id       varchar(15),
      addr            varchar(150),
      pincode         char(6),
-     primary key (user_id, product_id),
+    --  primary key (user_id, product_id),
+     primary key (order_id),
      foreign key (user_id) references buyer_profile on delete set null,
      foreign key (product_id) references product(product_id)
 );
